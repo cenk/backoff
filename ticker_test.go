@@ -72,3 +72,34 @@ func TestTickerStopsOnBackOffStop(t *testing.T) {
 		t.Error("expected channel to close after BackOff returned Stop")
 	}
 }
+
+// lateFiredTimer hands the ticker goroutine a channel that has already fired,
+// but only after a pause that lets the test call Stop and begin its receive.
+// The goroutine thus reaches its next select with the tick, the stop signal
+// and the receiver all ready.
+type lateFiredTimer struct{}
+
+func (lateFiredTimer) Start(time.Duration) {}
+func (lateFiredTimer) Stop()               {}
+
+func (lateFiredTimer) C() <-chan time.Time {
+	time.Sleep(time.Millisecond)
+	c := make(chan time.Time, 1)
+	c <- time.Now()
+	return c
+}
+
+func TestTickerNoTickAfterStop(t *testing.T) {
+	// A receive started after Stop returns must not get a tick (#198). Without
+	// the fix select picks between the tick and stop at random, so repeat to
+	// make a miss practically impossible.
+	for i := 0; i < 100; i++ {
+		ticker := NewTicker(NewConstantBackOff(time.Hour))
+		ticker.timer = lateFiredTimer{}
+		<-ticker.C // the first tick is guaranteed
+		ticker.Stop()
+		if _, ok := <-ticker.C; ok {
+			t.Fatalf("iteration %d: received a tick after Stop returned", i)
+		}
+	}
+}

@@ -16,6 +16,7 @@ type Ticker struct {
 	timer    timer
 	stop     chan struct{}
 	stopOnce sync.Once
+	done     chan struct{}
 }
 
 // NewTicker returns a new Ticker containing a channel that will send
@@ -32,15 +33,19 @@ func NewTicker(b BackOff) *Ticker {
 		b:     b,
 		timer: &defaultTimer{},
 		stop:  make(chan struct{}),
+		done:  make(chan struct{}),
 	}
 	t.b.Reset()
 	go t.run()
 	return t
 }
 
-// Stop turns off a ticker. After Stop, no more ticks will be sent.
+// Stop turns off a ticker and waits for it to shut down. After Stop returns,
+// no more ticks will be sent and C is closed. Do not call Stop from the
+// BackOff's methods; it waits for the goroutine that calls them.
 func (t *Ticker) Stop() {
 	t.stopOnce.Do(func() { close(t.stop) })
+	<-t.done
 }
 
 func (t *Ticker) run() {
@@ -48,6 +53,7 @@ func (t *Ticker) run() {
 	defer func() {
 		t.timer.Stop()
 		close(c)
+		close(t.done)
 	}()
 
 	// Ticker is guaranteed to tick at least once.
@@ -77,7 +83,6 @@ func (t *Ticker) send(tick time.Time) <-chan time.Time {
 
 	next := t.b.NextBackOff()
 	if next == Stop {
-		t.Stop()
 		return nil
 	}
 
