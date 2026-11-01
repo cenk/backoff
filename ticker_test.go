@@ -55,6 +55,9 @@ func TestTickerStop(t *testing.T) {
 	if _, ok := <-ticker.C; ok {
 		t.Error("expected ticker channel to be closed after Stop")
 	}
+	if ticker.timer.(*defaultTimer).timer.Stop() {
+		t.Error("expected ticker timer to be stopped after Stop")
+	}
 }
 
 func TestTickerStopsOnBackOffStop(t *testing.T) {

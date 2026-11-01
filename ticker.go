@@ -45,7 +45,10 @@ func (t *Ticker) Stop() {
 
 func (t *Ticker) run() {
 	c := t.c
-	defer close(c)
+	defer func() {
+		t.timer.Stop()
+		close(c)
+	}()
 
 	// Ticker is guaranteed to tick at least once.
 	afterC := t.send(time.Now())
