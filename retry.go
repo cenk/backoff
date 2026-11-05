@@ -9,14 +9,14 @@ import (
 // DefaultMaxElapsedTime sets a default limit for the total retry duration.
 const DefaultMaxElapsedTime = 15 * time.Minute
 
-// Operation is the function Retry calls. It is invoked at least once and may be
-// retried on error. Return a Permanent error to stop retrying immediately, or a
-// RetryAfterError to control the delay before the next attempt.
+// Operation is the function [Retry] calls. It is invoked at least once and may be
+// retried on error. Return a [Permanent] error to stop retrying immediately, or a
+// [RetryAfterError] to control the delay before the next attempt.
 type Operation[T any] func() (T, error)
 
 // Notify is called after a failed attempt that will be retried, with the
 // operation error and the backoff duration before the next attempt. It is
-// called once per retry, not for the final error that stops Retry (a permanent
+// called once per retry, not for the final error that stops [Retry] (a permanent
 // error, an exhausted limit, or a cancelled context).
 type Notify func(error, time.Duration)
 
@@ -29,15 +29,15 @@ type retryOptions struct {
 	MaxElapsedTime time.Duration // Maximum total time for all retries.
 }
 
-// RetryOption configures the behavior of Retry.
+// RetryOption configures the behavior of [Retry].
 type RetryOption func(*retryOptions)
 
 // WithBackOff configures the backoff policy used between attempts. The default
-// is NewExponentialBackOff.
+// is [NewExponentialBackOff].
 //
-// Retry calls Reset on the policy before the first attempt, so a previously
-// used policy may be passed. A BackOff is stateful and not safe for concurrent
-// use: give each concurrent Retry call its own BackOff rather than sharing one.
+// [Retry] calls [BackOff.Reset] on the policy before the first attempt, so a previously
+// used policy may be passed. A [BackOff] is stateful and not safe for concurrent
+// use: give each concurrent [Retry] call its own [BackOff] rather than sharing one.
 func WithBackOff(b BackOff) RetryOption {
 	return func(args *retryOptions) {
 		args.BackOff = b
@@ -52,7 +52,7 @@ func withTimer(t timer) RetryOption {
 }
 
 // WithNotify sets a function called after each failed attempt that will be
-// retried. See Notify for exactly when it fires.
+// retried. See [Notify] for exactly when it fires.
 func WithNotify(n Notify) RetryOption {
 	return func(args *retryOptions) {
 		args.Notify = n
@@ -60,8 +60,8 @@ func WithNotify(n Notify) RetryOption {
 }
 
 // WithMaxTries limits the total number of attempts, not retries: WithMaxTries(1)
-// runs the operation once and does not retry. When the limit is reached, Retry
-// returns a *RetryError with Cause ErrExhausted. The default, 0, means no limit.
+// runs the operation once and does not retry. When the limit is reached, [Retry]
+// returns a [*RetryError] with Cause [ErrExhausted]. The default, 0, means no limit.
 func WithMaxTries(n uint) RetryOption {
 	return func(args *retryOptions) {
 		args.MaxTries = n
@@ -69,48 +69,48 @@ func WithMaxTries(n uint) RetryOption {
 }
 
 // WithMaxElapsedTime limits the total wall-clock time spent retrying, measured
-// from when Retry is called. When the limit is reached, Retry returns a
-// *RetryError with Cause ErrMaxElapsedTime.
+// from when [Retry] is called. When the limit is reached, [Retry] returns a
+// [*RetryError] with Cause [ErrMaxElapsedTime].
 //
 // The limit is checked only between attempts: it gates whether another attempt
 // is scheduled. It does not interrupt an operation that is already running, nor
-// a backoff wait already in progress, and Retry stops early rather than
+// a backoff wait already in progress, and [Retry] stops early rather than
 // starting a backoff that would overrun the limit.
 //
 // The elapsed time includes the runtime of the attempts themselves, not only
 // the waits between them. An operation that runs longer than the limit before
 // it fails (a long poll or a blocking receive, for example) is therefore not
 // retried at all. Such operations need a bound of their own, such as a
-// BackOff that returns Stop once failures have lasted too long.
+// [BackOff] that returns [Stop] once failures have lasted too long.
 //
-// This differs from bounding Retry with a context deadline (e.g.
-// context.WithTimeout): a context deadline is reactive — it interrupts the
+// This differs from bounding [Retry] with a context deadline (e.g.
+// [context.WithTimeout]): a context deadline is reactive — it interrupts the
 // backoff wait and, if the operation observes the context, can abort an
-// in-flight attempt — and Retry reports it with Cause context.DeadlineExceeded.
+// in-flight attempt — and [Retry] reports it with Cause [context.DeadlineExceeded].
 //
-// The default is DefaultMaxElapsedTime (15 minutes), so both limits are active
+// The default is [DefaultMaxElapsedTime] (15 minutes), so both limits are active
 // at once unless overridden. Pass 0 to disable the elapsed-time limit and rely
-// on the context (or WithMaxTries) instead.
+// on the context (or [WithMaxTries]) instead.
 func WithMaxElapsedTime(d time.Duration) RetryOption {
 	return func(args *retryOptions) {
 		args.MaxElapsedTime = d
 	}
 }
 
-// Retry attempts the operation until it succeeds, returns a Permanent error,
+// Retry attempts the operation until it succeeds, returns a [Permanent] error,
 // or backoff completes. It ensures the operation is executed at least once.
 //
 // On success it returns the operation result and a nil error. On any failure
-// it returns the last result and a *RetryError whose Cause reports why it
-// stopped — ErrPermanent, ErrExhausted, ErrMaxElapsedTime, or the context
+// it returns the last result and a [*RetryError] whose Cause reports why it
+// stopped — [ErrPermanent], [ErrExhausted], [ErrMaxElapsedTime], or the context
 // cancellation cause — and whose LastErr holds the last operation error.
-// See RetryError and AsRetryError.
+// See [RetryError] and [AsRetryError].
 //
 // ctx bounds the retry loop: its cancellation or deadline stops further
 // attempts and interrupts the wait between them. The operation receives no
 // context, so capture ctx inside the operation if you want cancellation to
 // abort an in-flight attempt. To bound only how long backoff keeps retrying,
-// without affecting in-flight attempts, use WithMaxElapsedTime instead.
+// without affecting in-flight attempts, use [WithMaxElapsedTime] instead.
 func Retry[T any](ctx context.Context, operation Operation[T], opts ...RetryOption) (T, error) {
 	// Initialize default retry options.
 	args := &retryOptions{

@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// Ticker holds a channel that delivers `ticks' of a clock at times reported by a BackOff.
+// Ticker holds a channel that delivers `ticks' of a clock at times reported by a [BackOff].
 //
 // Ticks will continue to arrive when the previous operation is still running,
 // so operations that take a while to fail could run in quick succession.
@@ -19,11 +19,11 @@ type Ticker struct {
 	done     chan struct{}
 }
 
-// NewTicker returns a new Ticker containing a channel that will send
-// the time at times specified by the BackOff argument. Ticker is
-// guaranteed to tick at least once.  The channel is closed when Stop
-// method is called or BackOff stops. It is not safe to manipulate the
-// provided backoff policy (notably calling NextBackOff or Reset)
+// NewTicker returns a new [Ticker] containing a channel that will send
+// the time at times specified by the [BackOff] argument. Ticker is
+// guaranteed to tick at least once.  The channel is closed when [Ticker.Stop]
+// is called or [BackOff] stops. It is not safe to manipulate the
+// provided backoff policy (notably calling [BackOff.NextBackOff] or [BackOff.Reset])
 // while the ticker is running.
 func NewTicker(b BackOff) *Ticker {
 	c := make(chan time.Time)
@@ -42,7 +42,7 @@ func NewTicker(b BackOff) *Ticker {
 
 // Stop turns off a ticker and waits for it to shut down. After Stop returns,
 // no more ticks will be sent and C is closed. Do not call Stop from the
-// BackOff's methods; it waits for the goroutine that calls them.
+// [BackOff]'s methods; it waits for the goroutine that calls them.
 func (t *Ticker) Stop() {
 	t.stopOnce.Do(func() { close(t.stop) })
 	<-t.done

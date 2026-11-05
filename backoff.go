@@ -1,14 +1,14 @@
 // Package backoff implements backoff algorithms for retrying operations.
 //
-// Use Retry function for retrying operations that may fail.
-// If Retry does not meet your needs,
+// Use [Retry] for retrying operations that may fail.
+// If [Retry] does not meet your needs,
 // copy/paste the function into your project and modify as you wish.
 //
-// On failure Retry returns a *RetryError reporting the last operation error
-// and why it stopped; see RetryError, AsRetryError, and the ErrPermanent,
-// ErrExhausted, and ErrMaxElapsedTime causes.
+// On failure [Retry] returns a [*RetryError] reporting the last operation error
+// and why it stopped; see [RetryError], [AsRetryError], and the [ErrPermanent],
+// [ErrExhausted], and [ErrMaxElapsedTime] causes.
 //
-// There is also Ticker type similar to time.Ticker.
+// There is also [Ticker], similar to [time.Ticker].
 // You can use it if you need to work with channels.
 //
 // See Examples section below for usage examples.
@@ -36,7 +36,7 @@ type BackOff interface {
 	Reset()
 }
 
-// Stop indicates that no more retries should be made for use in NextBackOff().
+// Stop indicates that no more retries should be made for use in [BackOff.NextBackOff].
 const Stop time.Duration = -1
 
 // ZeroBackOff is a fixed backoff policy whose backoff time is always zero,
@@ -47,8 +47,8 @@ func (b *ZeroBackOff) Reset() {}
 
 func (b *ZeroBackOff) NextBackOff() time.Duration { return 0 }
 
-// StopBackOff is a fixed backoff policy that always returns backoff.Stop for
-// NextBackOff(), meaning that the operation should never be retried.
+// StopBackOff is a fixed backoff policy that always returns [Stop] for
+// [BackOff.NextBackOff], meaning that the operation should never be retried.
 type StopBackOff struct{}
 
 func (b *StopBackOff) Reset() {}
@@ -57,7 +57,7 @@ func (b *StopBackOff) NextBackOff() time.Duration { return Stop }
 
 // ConstantBackOff is a backoff policy that always returns the same backoff delay.
 // This is in contrast to an exponential backoff policy,
-// which returns a delay that grows longer as you call NextBackOff() over and over again.
+// which returns a delay that grows longer as you call [BackOff.NextBackOff] over and over again.
 type ConstantBackOff struct {
 	Interval time.Duration
 }
